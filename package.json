@@ -1,0 +1,9 @@
+{
+  "name": "ffweb-monorepo",
+  "private": true,
+  "workspaces": ["packages/*"],
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "test:smoke": "node --test tests/smoke/"
+  }
+}
