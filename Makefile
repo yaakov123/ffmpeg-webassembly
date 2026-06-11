@@ -1,5 +1,5 @@
 IMAGE := ffweb-builder
-DOCKER_RUN := docker run --rm -v $(CURDIR):/src -w /src $(IMAGE)
+DOCKER_RUN := docker run --rm -v "$(CURDIR):/src" -w /src $(IMAGE)
 
 .PHONY: image fetch libs cores core-lgpl core-gpl clean
 
@@ -14,11 +14,11 @@ libs:
 
 cores: core-lgpl core-gpl
 
-core-lgpl:
+core-lgpl: libs
 	$(DOCKER_RUN) bash build/build-ffmpeg.sh lgpl
 	$(DOCKER_RUN) bash build/link.sh lgpl
 
-core-gpl:
+core-gpl: libs
 	$(DOCKER_RUN) bash build/build-ffmpeg.sh gpl
 	$(DOCKER_RUN) bash build/link.sh gpl
 

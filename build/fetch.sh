@@ -8,14 +8,16 @@ get() { # get <dirname> <url>
   local dir=$1 url=$2
   [ -d "$dir" ] && { echo "have $dir"; return; }
   echo "fetching $dir"
+  rm -rf "$dir.tmp"
   local tmp=$dir.dl
   curl -fL --retry 3 -o "$tmp" "$url"
-  mkdir "$dir"
+  mkdir "$dir.tmp"
   case "$url" in
-    *.tar.gz|*.tgz) tar xzf "$tmp" -C "$dir" --strip-components=1 ;;
-    *.tar.xz)       tar xJf "$tmp" -C "$dir" --strip-components=1 ;;
-    *.tar.bz2)      tar xjf "$tmp" -C "$dir" --strip-components=1 ;;
+    *.tar.gz|*.tgz) tar xzf "$tmp" -C "$dir.tmp" --strip-components=1 ;;
+    *.tar.xz)       tar xJf "$tmp" -C "$dir.tmp" --strip-components=1 ;;
+    *.tar.bz2)      tar xjf "$tmp" -C "$dir.tmp" --strip-components=1 ;;
   esac
+  mv "$dir.tmp" "$dir"
   rm "$tmp"
 }
 
@@ -35,5 +37,9 @@ get freetype "$FREETYPE_URL"
 get fribidi  "$FRIBIDI_URL"
 get harfbuzz "$HARFBUZZ_URL"
 get libass   "$LIBASS_URL"
-[ -d zimg ] || git clone --recursive --depth 1 --branch "$ZIMG_BRANCH" "$ZIMG_GIT" zimg
+if [ ! -d zimg ]; then
+  rm -rf zimg.tmp
+  git clone --recursive --depth 1 --branch "$ZIMG_BRANCH" "$ZIMG_GIT" zimg.tmp
+  mv zimg.tmp zimg
+fi
 echo "fetch complete"

@@ -4,7 +4,8 @@
 FFMPEG_VERSION=n8.1.1
 FFMPEG_URL="https://github.com/FFmpeg/FFmpeg/archive/refs/tags/${FFMPEG_VERSION}.tar.gz"
 
-X264_URL="https://code.videolan.org/videolan/x264/-/archive/stable/x264-stable.tar.bz2"
+X264_COMMIT=b35605ace3ddf7c1a5d67a2eb553f034aef41d55
+X264_URL="https://code.videolan.org/videolan/x264/-/archive/${X264_COMMIT}/x264-${X264_COMMIT}.tar.bz2"
 X265_VERSION=3.4
 X265_URL="https://anduin.linuxfromscratch.org/BLFS/x265/x265_${X265_VERSION}.tar.gz"
 LIBVPX_VERSION=1.15.2
