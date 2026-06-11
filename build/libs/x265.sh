@@ -1,8 +1,12 @@
 #!/bin/bash
 set -euo pipefail
 cd "$THIRD/x265"
+# x265 cmake sets X86=1 when CMAKE_SYSTEM_PROCESSOR is empty (Emscripten), then
+# adds -march=i686 which Emscripten's clang strips to bare -march= → error.
+# Explicitly set SYSTEM_PROCESSOR to wasm32 so x265 skips the x86 arch block.
 COMMON=(-DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=OFF -DENABLE_CLI=OFF
-        -DENABLE_ASSEMBLY=OFF -DENABLE_LIBNUMA=OFF)
+        -DENABLE_ASSEMBLY=OFF -DENABLE_LIBNUMA=OFF
+        -DEMSCRIPTEN_SYSTEM_PROCESSOR=wasm32)
 
 rm -rf build-8 build-10 build-12
 
