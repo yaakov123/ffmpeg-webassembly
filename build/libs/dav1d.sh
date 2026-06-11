@@ -1,7 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 cd "$THIRD/dav1d"
-cat > wasm-cross.ini <<EOF
+CROSS_FILE=$(mktemp /tmp/dav1d-cross-XXXX.ini)
+cat > "$CROSS_FILE" <<EOF
 [binaries]
 c = 'emcc'
 cpp = 'em++'
@@ -21,7 +22,7 @@ cpu = 'wasm32'
 endian = 'little'
 EOF
 rm -rf build-wasm
-meson setup build-wasm --cross-file=wasm-cross.ini --prefix="$PREFIX" \
+meson setup build-wasm --cross-file="$CROSS_FILE" --prefix="$PREFIX" \
   --default-library=static -Denable_asm=false \
   -Denable_tools=false -Denable_tests=false -Denable_examples=false \
   -Dbitdepths=8,16

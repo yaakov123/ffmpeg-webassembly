@@ -22,7 +22,7 @@ cmake --build build-8 -j"$NPROC" --target install
 
 # Replace the installed 8-bit-only archive with the merged 8/10/12-bit one.
 cd build-8
-emar -M <<EOF
+emar -M <<'EOF'
 CREATE libx265_full.a
 ADDLIB libx265.a
 ADDLIB ../build-10/libx265.a
