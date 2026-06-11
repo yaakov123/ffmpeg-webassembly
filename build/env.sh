@@ -13,7 +13,7 @@ export CPPFLAGS="-I$PREFIX/include"
 export LDFLAGS="-pthread -L$PREFIX/lib"
 export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:$PREFIX/share/pkgconfig"
 export EM_PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
-NPROC=$(nproc)
+export NPROC=$(nproc)
 mkdir -p "$PREFIX" "$OUT"
 
 built() { [ -f "$OUT/.stamp-$1" ]; }

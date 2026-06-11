@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 cd "$THIRD/libwebp"
+rm -rf build-wasm
 emcmake cmake -B build-wasm -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_INSTALL_PREFIX="$PREFIX" \
   -DBUILD_SHARED_LIBS=OFF -DWEBP_ENABLE_SIMD=OFF \
