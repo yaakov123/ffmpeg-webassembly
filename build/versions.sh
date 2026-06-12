@@ -23,7 +23,8 @@ OGG_URL="https://downloads.xiph.org/releases/ogg/libogg-${OGG_VERSION}.tar.gz"
 VORBIS_VERSION=1.3.7
 VORBIS_URL="https://downloads.xiph.org/releases/vorbis/libvorbis-${VORBIS_VERSION}.tar.gz"
 ZLIB_VERSION=1.3.1
-ZLIB_URL="https://zlib.net/fossils/zlib-${ZLIB_VERSION}.tar.gz"
+# zlib.net intermittently rejects CI fetchers (415); use the maintainer's GitHub releases.
+ZLIB_URL="https://github.com/madler/zlib/releases/download/v${ZLIB_VERSION}/zlib-${ZLIB_VERSION}.tar.gz"
 LIBWEBP_VERSION=1.3.2
 LIBWEBP_URL="https://storage.googleapis.com/downloads.webmproject.org/releases/webp/libwebp-${LIBWEBP_VERSION}.tar.gz"
 FREETYPE_VERSION=2.13.3
