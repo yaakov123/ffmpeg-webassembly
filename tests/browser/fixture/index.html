@@ -10,8 +10,10 @@
     async transcode() {
       const ff = await FFmpeg.create({ coreURL: new URL('/packages/core/dist/ffmpeg-core.js', location.href) });
       try {
+        // -threads 1 prevents libvpx from spawning pthreads at encode time;
+        // without it Chromium headless hangs even when crossOriginIsolated=true.
         const ret = await ff.exec(['-f', 'lavfi', '-i', 'testsrc2=duration=0.5:size=128x72:rate=5',
-          '-c:v', 'libvpx', '-f', 'webm', '/out.webm']);
+          '-c:v', 'libvpx', '-threads', '1', '-f', 'webm', '/out.webm']);
         const data = ret === 0 ? await ff.readFile('/out.webm') : new Uint8Array();
         return { ret, size: data.length };
       } finally { ff.terminate(); }
