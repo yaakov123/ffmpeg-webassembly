@@ -5,7 +5,7 @@ A fast, modern WebAssembly port of FFmpeg 8.x. See
 
 ## Building the cores
 
-Requires Docker and Node >= 18.
+Requires Docker and Node >= 22.
 
     make image   # build the toolchain image (once)
     make fetch   # download pinned source tarballs into third_party/
