@@ -55,6 +55,10 @@ export class FFmpeg {
   private activeLog?: (e: LogEvent) => void;
   private activeProgress?: ProgressParser;
   private globalLog: ((e: LogEvent) => void)[] = [];
+  /** Single-flight serialization chain: all public ops enqueue onto this. */
+  private chain: Promise<unknown> = Promise.resolve();
+  /** Guard against concurrent load() calls: share one in-flight spawn. */
+  private loading: Promise<void> | null = null;
 
   private constructor(opts: CreateOptions) {
     this.opts = { variant: 'lgpl', ...opts };
@@ -73,49 +77,94 @@ export class FFmpeg {
   /** (Re)spawn the worker and load the core. Idempotent when alive. */
   async load(): Promise<void> {
     if (this.worker) return;
-    const coreURL = String(
-      this.opts.coreURL ??
-        (await resolveDefaultCore(this.opts.variant)),
-    );
-    const wasmURL = this.opts.wasmURL ? String(this.opts.wasmURL) : undefined;
-    this.worker = await spawnWorker();
-    this.worker.onMessage((msg) => this.dispatch(msg));
-    this.worker.onError((err) => this.failAll(new FFmpegCrashError(`worker error: ${err.message}`, [...this.logRing])));
-    await this.call({ op: 'load', coreURL, wasmURL });
+    if (this.loading) return this.loading;
+    this.loading = (async () => {
+      const coreURL = String(
+        this.opts.coreURL ??
+          (await resolveDefaultCore(this.opts.variant)),
+      );
+      const wasmURL = this.opts.wasmURL ? String(this.opts.wasmURL) : undefined;
+      this.worker = await spawnWorker();
+      this.worker.onMessage((msg) => this.dispatch(msg));
+      this.worker.onError((err) => this.failAll(new FFmpegCrashError(`worker error: ${err.message}`, [...this.logRing])));
+      await this.call({ op: 'load', coreURL, wasmURL });
+    })().finally(() => { this.loading = null; });
+    return this.loading;
   }
 
   async exec(args: string[], options: ExecOptions = {}): Promise<number> {
-    return this.run('exec', args, options);
+    return this.enqueue(() => this.run('exec', args, options));
   }
 
   async ffprobe(args: string[], options: ExecOptions = {}): Promise<number> {
-    return this.run('ffprobe', args, options);
+    return this.enqueue(() => this.run('ffprobe', args, options));
   }
 
+  /**
+   * Write a file into the wasm filesystem.
+   *
+   * **Transfer note:** on the transfer path the caller's `Uint8Array` is detached
+   * after this call returns — do not reuse the buffer after `await writeFile(...)`.
+   * If you need the data afterwards, keep a separate reference or pass a copy.
+   */
   async writeFile(path: string, data: Uint8Array | string): Promise<void> {
-    const transfer = typeof data === 'string' ? [] : [data.buffer as ArrayBuffer];
-    await this.call({ op: 'writeFile', path, data }, transfer);
+    return this.enqueue(async () => {
+      if (typeof data === 'string') {
+        await this.call({ op: 'writeFile', path, data });
+        return;
+      }
+      // Transfer only a view covering its entire buffer (and only if the buffer
+      // is transferable — pooled Node Buffers are not); otherwise copy.
+      // Use new Uint8Array(data) rather than data.slice() to guarantee a fresh
+      // standalone ArrayBuffer (Buffer.prototype.slice is an alias for subarray
+      // and shares the pool buffer).
+      const coversBuffer = data.byteOffset === 0 && data.byteLength === data.buffer.byteLength;
+      const payload = coversBuffer ? data : new Uint8Array(data);
+      try {
+        await this.call({ op: 'writeFile', path, data: payload }, [payload.buffer as ArrayBuffer]);
+      } catch (e) {
+        if ((e as Error)?.name === 'DataCloneError') {
+          const copy = new Uint8Array(data);
+          await this.call({ op: 'writeFile', path, data: copy }, [copy.buffer as ArrayBuffer]);
+        } else { throw e; }
+      }
+    });
   }
 
   async readFile(path: string): Promise<Uint8Array>;
   async readFile(path: string, encoding: 'utf8'): Promise<string>;
   async readFile(path: string, encoding?: 'utf8'): Promise<Uint8Array | string> {
-    return (await this.call({ op: 'readFile', path, encoding })) as Uint8Array | string;
+    return this.enqueue(() => this.call({ op: 'readFile', path, encoding }) as Promise<Uint8Array | string>);
   }
 
-  async deleteFile(path: string): Promise<void> { await this.call({ op: 'deleteFile', path }); }
-  async rename(from: string, to: string): Promise<void> { await this.call({ op: 'rename', from, to }); }
-  async createDir(path: string): Promise<void> { await this.call({ op: 'createDir', path }); }
-  async deleteDir(path: string): Promise<void> { await this.call({ op: 'deleteDir', path }); }
+  async deleteFile(path: string): Promise<void> {
+    return this.enqueue(() => this.call({ op: 'deleteFile', path }) as Promise<void>);
+  }
+
+  async rename(from: string, to: string): Promise<void> {
+    return this.enqueue(() => this.call({ op: 'rename', from, to }) as Promise<void>);
+  }
+
+  async createDir(path: string): Promise<void> {
+    return this.enqueue(() => this.call({ op: 'createDir', path }) as Promise<void>);
+  }
+
+  async deleteDir(path: string): Promise<void> {
+    return this.enqueue(() => this.call({ op: 'deleteDir', path }) as Promise<void>);
+  }
+
   async listDir(path: string): Promise<DirEntry[]> {
-    return (await this.call({ op: 'listDir', path })) as DirEntry[];
+    return this.enqueue(() => this.call({ op: 'listDir', path }) as Promise<DirEntry[]>);
   }
 
   /** Browser-only (WORKERFS): mount Files/Blobs read-only without copying. */
   async mount(mountPoint: string, source: MountSource): Promise<void> {
-    await this.call({ op: 'mount', mountPoint, source });
+    return this.enqueue(() => this.call({ op: 'mount', mountPoint, source }) as Promise<void>);
   }
-  async unmount(mountPoint: string): Promise<void> { await this.call({ op: 'unmount', mountPoint }); }
+
+  async unmount(mountPoint: string): Promise<void> {
+    return this.enqueue(() => this.call({ op: 'unmount', mountPoint }) as Promise<void>);
+  }
 
   terminate(): void {
     this.failAll(new FFmpegError('terminated'));
@@ -124,6 +173,17 @@ export class FFmpeg {
   }
 
   // --- internals -------------------------------------------------------------
+
+  /**
+   * Serialise `fn` behind the chain so concurrent public calls execute in
+   * order and log/progress routing can't be swapped mid-flight.
+   */
+  private enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    const next = this.chain.then(fn, fn);
+    // Keep the chain alive regardless of outcome, without unhandled rejections.
+    this.chain = next.then(() => undefined, () => undefined);
+    return next;
+  }
 
   private async run(op: 'exec' | 'ffprobe', args: string[], options: ExecOptions): Promise<number> {
     await this.load(); // respawn after crash/terminate
@@ -165,7 +225,13 @@ export class FFmpeg {
         }, timeout);
       }
       this.pending.set(id, pending);
-      worker.postMessage({ ...req, id } as Req, transfer);
+      try {
+        worker.postMessage({ ...req, id } as Req, transfer);
+      } catch (e) {
+        this.pending.delete(id);
+        if (pending.timer) clearTimeout(pending.timer);
+        reject(e);
+      }
     });
   }
 
@@ -202,6 +268,8 @@ export class FFmpeg {
       this.worker?.terminate();
       this.worker = null;
       p.reject(new FFmpegCrashError(reply.error.message, reply.error.logTail));
+      // Cancel all queued calls so nothing hangs behind the dead chain.
+      this.failAll(new FFmpegCrashError('worker aborted; queued calls cancelled', reply.error.logTail));
     } else {
       p.reject(Object.assign(new FFmpegError(reply.error.message, reply.error.logTail), { name: reply.error.name }));
     }
