@@ -3,3 +3,5 @@ third_party/
 build/out/
 packages/*/dist/
 *.log
+.DS_Store
+test-results/

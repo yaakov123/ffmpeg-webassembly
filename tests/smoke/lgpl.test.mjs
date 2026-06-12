@@ -60,3 +60,16 @@ test('AV1 encode via SVT-AV1 and decode via dav1d', async () => {
   logs.length = 0;
   assert.equal(core.exec('-c:v', 'libdav1d', '-i', '/a.ivf', '-f', 'null', '-'), 0);
 });
+
+test('libass renders subtitles (harfbuzz shaping path)', async () => {
+  const { core } = await loadCore('lgpl');
+  core.FS.writeFile('/sub.srt', '1\n00:00:00,000 --> 00:00:01,000\nHello ffweb\n');
+  // No fonts are bundled; rendering falls back but must not crash, and the
+  // subtitles filter must initialize libass + harfbuzz.
+  const ret = core.exec(
+    '-f', 'lavfi', '-i', 'testsrc2=duration=0.5:size=160x90:rate=5',
+    '-vf', 'subtitles=/sub.srt:fontsdir=/',
+    '-c:v', 'libvpx', '-f', 'webm', '/s.webm');
+  assert.equal(ret, 0);
+  assert.ok(core.FS.readFile('/s.webm').length > 500);
+});

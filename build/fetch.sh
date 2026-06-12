@@ -42,7 +42,9 @@ get harfbuzz "$HARFBUZZ_URL"
 get libass   "$LIBASS_URL"
 if [ ! -d zimg ]; then
   rm -rf zimg.tmp
-  git clone --recursive --depth 1 --branch "$ZIMG_BRANCH" "$ZIMG_GIT" zimg.tmp
+  git clone --recursive --branch "$ZIMG_BRANCH" "$ZIMG_GIT" zimg.tmp
+  git -C zimg.tmp checkout --quiet "$ZIMG_COMMIT"
+  git -C zimg.tmp submodule update --init --recursive --quiet
   mv zimg.tmp zimg
 fi
 echo "fetch complete"

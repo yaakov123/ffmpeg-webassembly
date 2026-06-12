@@ -36,4 +36,5 @@ HARFBUZZ_URL="https://github.com/harfbuzz/harfbuzz/releases/download/${HARFBUZZ_
 LIBASS_VERSION=0.15.0
 LIBASS_URL="https://github.com/libass/libass/releases/download/${LIBASS_VERSION}/libass-${LIBASS_VERSION}.tar.xz"
 ZIMG_BRANCH=release-3.0.5   # cloned with submodules (graphengine)
+ZIMG_COMMIT=e5b0de6bebbcbc66732ed5afaafef6b2c7dfef87
 ZIMG_GIT="https://github.com/sekrit-twc/zimg.git"
