@@ -5,6 +5,13 @@ VARIANT=${1:?usage: build-ffmpeg.sh <lgpl|gpl>}
 cd "$(dirname "$0")/.."
 source build/env.sh
 
+# Local fftools patches (e.g. re-entrancy for repeated ffmpeg_main calls).
+# -N skips already-applied patches; guard with || true so re-runs are clean.
+for p in build/patches/*.patch; do
+  [ -e "$p" ] || continue
+  patch -d "$THIRD/ffmpeg" -p1 -N -r /dev/null < "$p" || true
+done
+
 FFSRC=$THIRD/ffmpeg
 FFBUILD=$OUT/ffmpeg-$VARIANT
 mkdir -p "$FFBUILD"
