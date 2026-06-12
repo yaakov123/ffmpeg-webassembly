@@ -1,6 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 cd "$THIRD/zimg"
+# Stale objects from a pre-mipsel configure were packaged into libzimg.a with
+# ZIMG_X86 dispatch callers; clean the tree so autogen/configure start fresh.
+git clean -fdx . && git checkout -- .
 ./autogen.sh
 # --host=i686-linux-gnu causes configure to enable x86 SIMD paths which use
 # constants (ZIMG_CPU_X86_SSE2 etc.) not defined when targeting wasm32.
