@@ -42,8 +42,12 @@ grep -q '^#define HAVE_PTHREADS 1' config.h \
 # fail (we link them ourselves in link.sh) — object files are what we need.
 emmake make -j"$NPROC" -k || true
 
-# Assert the objects we depend on exist.
-test -f fftools/ffmpeg.o && test -f fftools/ffprobe.o \
-  && test -f libavcodec/libavcodec.a && test -f libavformat/libavformat.a \
-  || { echo "FATAL: expected FFmpeg objects missing"; exit 1; }
+# Assert the objects and archives we depend on exist.
+for f in fftools/ffmpeg.o fftools/ffprobe.o fftools/cmdutils.o \
+          libavcodec/libavcodec.a libavformat/libavformat.a \
+          libavfilter/libavfilter.a libavdevice/libavdevice.a \
+          libavutil/libavutil.a libswscale/libswscale.a \
+          libswresample/libswresample.a; do
+  test -f "$f" || { echo "FATAL: expected FFmpeg object missing: $f"; exit 1; }
+done
 echo "ffmpeg $VARIANT build complete"

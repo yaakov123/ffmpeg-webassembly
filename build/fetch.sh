@@ -22,6 +22,9 @@ get() { # get <dirname> <url>
 }
 
 get ffmpeg   "$FFMPEG_URL"
+# GitHub tag tarballs ship RELEASE but not VERSION; without VERSION,
+# ffbuild/version.sh git-describes our outer repo and bakes its hash in.
+[ -f ffmpeg/VERSION ] || cp ffmpeg/RELEASE ffmpeg/VERSION
 get x264     "$X264_URL"
 get x265     "$X265_URL"
 get libvpx   "$LIBVPX_URL"

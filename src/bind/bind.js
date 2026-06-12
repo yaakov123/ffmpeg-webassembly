@@ -26,6 +26,7 @@ function ffweb_run(entryName, progName, args) {
       // exit() was called; with EXIT_RUNTIME=0 the runtime stays alive.
       Module['ret'] = e.status;
     } else if (e && typeof e.message === 'string' && e.message.includes('Aborted')) {
+      Module['aborted'] = true;
       Module['ret'] = 1;
     } else {
       throw e;
@@ -37,5 +38,5 @@ function ffweb_run(entryName, progName, args) {
   return Module['ret'];
 }
 
-Module['exec'] = (...args) => ffweb_run('ffmpeg_main', 'ffmpeg', ['-nostdin', '-y', ...args]);
+Module['exec'] = (...args) => ffweb_run('ffmpeg_main', 'ffmpeg', ['-nostdin', ...(args.includes('-n') ? [] : ['-y']), ...args]);
 Module['ffprobe'] = (...args) => ffweb_run('ffprobe_main', 'ffprobe', args);
