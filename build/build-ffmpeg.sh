@@ -11,8 +11,10 @@ for p in build/patches/*.patch; do
   [ -e "$p" ] || continue
   out=$(patch -d "$THIRD/ffmpeg" -p1 -N -r /dev/null < "$p" 2>&1) || {
     # -N exits 1 both when already applied and on real conflict; only the
-    # former is benign.
-    echo "$out" | grep -q 'Ignoring previously applied' \
+    # former is benign. GNU patch wording varies by invocation: "Ignoring
+    # previously applied patch" vs "Reversed (or previously applied) patch
+    # detected!  Skipping patch."
+    echo "$out" | grep -qi 'previously applied' \
       || { echo "FATAL: patch failed to apply: $p"; echo "$out"; exit 1; }
   }
 done
