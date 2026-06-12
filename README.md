@@ -42,8 +42,11 @@ Node 22+ works out of the box (`FFmpeg.create()` resolves the installed
 
 ## Performance notes
 
-Pass `-threads 4` (or ≤ 8) for encoders on many-core machines; the worker
-pool is capped. WebCodecs hardware acceleration lands in Phase 3.
+**Always pass `-threads` (≤ 8) to threaded encoders.** On Chromium, omitting
+`-threads` lets encoders like libvpx auto-detect all cores and spawn that many
+wasm threads mid-encode, which can deadlock the page (confirmed on ≥12-core
+machines; Firefox/WebKit are unaffected). `-threads 4` is a good default.
+A core-level fix (clamping reported core count) is planned.
 
 ## Building the cores
 
