@@ -56,6 +56,7 @@ test('AV1 encode via SVT-AV1 and decode via dav1d', async () => {
   assert.equal(core.exec(
     '-f', 'lavfi', '-i', 'testsrc2=duration=0.5:size=128x72:rate=5',
     '-c:v', 'libsvtav1', '-preset', '12', '-f', 'ivf', '/a.ivf'), 0);
+  assert.ok(core.FS.readFile('/a.ivf').length > 500);
   logs.length = 0;
   assert.equal(core.exec('-c:v', 'libdav1d', '-i', '/a.ivf', '-f', 'null', '-'), 0);
 });

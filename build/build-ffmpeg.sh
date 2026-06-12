@@ -6,10 +6,15 @@ cd "$(dirname "$0")/.."
 source build/env.sh
 
 # Local fftools patches (e.g. re-entrancy for repeated ffmpeg_main calls).
-# -N skips already-applied patches; guard with || true so re-runs are clean.
+# -N skips already-applied patches; detect benign "already applied" vs real failures.
 for p in build/patches/*.patch; do
   [ -e "$p" ] || continue
-  patch -d "$THIRD/ffmpeg" -p1 -N -r /dev/null < "$p" || true
+  out=$(patch -d "$THIRD/ffmpeg" -p1 -N -r /dev/null < "$p" 2>&1) || {
+    # -N exits 1 both when already applied and on real conflict; only the
+    # former is benign.
+    echo "$out" | grep -q 'Ignoring previously applied' \
+      || { echo "FATAL: patch failed to apply: $p"; echo "$out"; exit 1; }
+  }
 done
 
 FFSRC=$THIRD/ffmpeg
