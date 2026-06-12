@@ -1,0 +1,31 @@
+name: build-cores
+on:
+  push: { branches: [main] }
+  pull_request:
+jobs:
+  cores:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Cache third_party sources
+        uses: actions/cache@v4
+        with:
+          path: third_party
+          key: third-party-${{ hashFiles('build/versions.sh') }}
+      - name: Cache build output
+        uses: actions/cache@v4
+        with:
+          path: build/out
+          key: build-out-${{ hashFiles('build/**/*.sh', 'build/Dockerfile', 'build/patches/**') }}
+      - run: make image
+      - run: make fetch
+      - run: make libs
+      - run: make cores
+      - run: npm run test:smoke
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cores
+          path: packages/*/dist/
