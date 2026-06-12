@@ -33,8 +33,18 @@ async function handle(req: Req, post: PostFn): Promise<void> {
     switch (req.op) {
       case 'load': {
         const createCore = (await import(/* @vite-ignore */ req.coreURL)).default;
+        // Emscripten calls URL.createObjectURL(mainScriptUrlOrBlob) when it is
+        // not a string — URL.createObjectURL in Node requires a Blob, not a URL
+        // object.  Instead pass an absolute path string (worker_threads.Worker
+        // accepts those) derived via fileURLToPath so the pthread sub-workers
+        // resolve correctly.
+        let mainScriptUrlOrBlob: string = req.coreURL;
+        if (isNode && req.coreURL.startsWith('file://')) {
+          const { fileURLToPath } = await import('node:url');
+          mainScriptUrlOrBlob = fileURLToPath(req.coreURL);
+        }
         core = (await createCore({
-          mainScriptUrlOrBlob: req.coreURL,
+          mainScriptUrlOrBlob,
           locateFile: (path: string, prefix: string) =>
             path.endsWith('.wasm') && req.wasmURL ? req.wasmURL : prefix + path,
         })) as CoreModule;

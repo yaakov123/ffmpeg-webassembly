@@ -14,7 +14,7 @@
     "build:lib": "npm run build -w @ffweb/ffmpeg",
     "test:smoke": "node --test 'tests/smoke/*.test.mjs'",
     "test:unit": "vitest run",
-    "test:node": "node --test tests/node/",
+    "test:node": "node --test 'tests/node/**/*.mjs'",
     "test:browser": "playwright test"
   }
 }
