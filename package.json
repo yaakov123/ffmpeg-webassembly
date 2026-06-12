@@ -3,7 +3,18 @@
   "private": true,
   "workspaces": ["packages/*"],
   "engines": { "node": ">=22" },
+  "devDependencies": {
+    "typescript": "^5.5",
+    "tsup": "^8",
+    "vitest": "^2",
+    "@playwright/test": "^1.48",
+    "@types/node": "^22"
+  },
   "scripts": {
-    "test:smoke": "node --test 'tests/smoke/*.test.mjs'"
+    "build:lib": "npm run build -w @ffweb/ffmpeg",
+    "test:smoke": "node --test 'tests/smoke/*.test.mjs'",
+    "test:unit": "vitest run",
+    "test:node": "node --test tests/node/",
+    "test:browser": "playwright test"
   }
 }

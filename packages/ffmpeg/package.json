@@ -1,0 +1,19 @@
+{
+  "name": "@ffweb/ffmpeg",
+  "version": "0.1.0",
+  "description": "Fast FFmpeg 8.x for browsers and Node — worker-based wrapper for @ffweb/core",
+  "type": "module",
+  "license": "MIT",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
+    "./worker": "./dist/worker.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "engines": { "node": ">=22" }
+}
