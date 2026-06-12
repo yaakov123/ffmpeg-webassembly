@@ -1,0 +1,45 @@
+<!doctype html>
+<meta charset="utf-8" />
+<title>ffweb fixture</title>
+<script type="module">
+  import { FFmpeg } from '/packages/ffmpeg/dist/index.js';
+
+  window.ffwebTest = {
+    isolated: () => crossOriginIsolated,
+
+    async transcode() {
+      const ff = await FFmpeg.create({ coreURL: new URL('/packages/core/dist/ffmpeg-core.js', location.href) });
+      try {
+        const ret = await ff.exec(['-f', 'lavfi', '-i', 'testsrc2=duration=0.5:size=128x72:rate=5',
+          '-c:v', 'libvpx', '-f', 'webm', '/out.webm']);
+        const data = ret === 0 ? await ff.readFile('/out.webm') : new Uint8Array();
+        return { ret, size: data.length };
+      } finally { ff.terminate(); }
+    },
+
+    async mountFile() {
+      const blob = new Blob([new Uint8Array(await (await fetch('/tests/browser/fixture/tiny.wav')).arrayBuffer())]);
+      const ff = await FFmpeg.create({ coreURL: new URL('/packages/core/dist/ffmpeg-core.js', location.href) });
+      try {
+        await ff.mount('/work', { blobs: [{ name: 'in.wav', data: blob }] });
+        const ret = await ff.exec(['-i', '/work/in.wav', '-c:a', 'libmp3lame', '-f', 'mp3', '/out.mp3']);
+        const size = ret === 0 ? (await ff.readFile('/out.mp3')).length : 0;
+        await ff.unmount('/work');
+        return { ret, size };
+      } finally { ff.terminate(); }
+    },
+
+    async progress() {
+      const ff = await FFmpeg.create({ coreURL: new URL('/packages/core/dist/ffmpeg-core.js', location.href) });
+      try {
+        await ff.exec(['-f', 'lavfi', '-i', 'sine=duration=2', '-c:a', 'pcm_s16le', '-f', 'wav', '/in.wav']);
+        const events = [];
+        const ret = await ff.exec(['-i', '/in.wav', '-c:a', 'libmp3lame', '-f', 'mp3', '/o.mp3'],
+          { onProgress: (e) => events.push(e) });
+        return { ret, count: events.length, lastDone: events.at(-1)?.done ?? false };
+      } finally { ff.terminate(); }
+    },
+  };
+  window.ffwebReady = true;
+</script>
+<body>ffweb test fixture</body>
