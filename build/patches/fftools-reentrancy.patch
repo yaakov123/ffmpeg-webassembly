@@ -1,0 +1,26 @@
+--- a/fftools/ffmpeg.c
++++ b/fftools/ffmpeg.c
+@@ -340,6 +340,7 @@
+             av_log(NULL, AV_LOG_ERROR,
+                    "Error closing vstats file, loss of information possible: %s\n",
+                    av_err2str(AVERROR(errno)));
++        vstats_file = NULL;
+     }
+     av_freep(&vstats_filename);
+     of_enc_stats_close();
+@@ -353,6 +354,15 @@
+ 
+     av_freep(&input_files);
+     av_freep(&output_files);
++
++    /* Zero the element counts of the global arrays freed above so that a
++     * subsequent invocation of main() in re-entrant builds (e.g. WebAssembly,
++     * where the process outlives a run) does not grow the recreated arrays
++     * past stale counts, leaving uninitialized slots that crash on iteration. */
++    nb_input_files  = 0;
++    nb_output_files = 0;
++    nb_filtergraphs = 0;
++    nb_decoders     = 0;
+ 
+     uninit_opts();
+ 

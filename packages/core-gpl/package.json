@@ -1,0 +1,9 @@
+{
+  "name": "@ffweb/core-gpl",
+  "version": "0.1.0",
+  "description": "FFmpeg 8.1 WebAssembly core (GPL build: + x264, x265)",
+  "type": "module",
+  "license": "GPL-2.0-or-later",
+  "exports": { ".": "./dist/ffmpeg-core.js" },
+  "files": ["dist", "sources.json"]
+}
